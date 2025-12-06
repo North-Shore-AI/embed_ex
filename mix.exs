@@ -1,17 +1,26 @@
 defmodule EmbedEx.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/North-Shore-AI/embed_ex"
+
   def project do
     [
       app: :embed_ex,
-      version: "0.1.0",
+      version: @version,
+      name: "EmbedEx",
+      source_url: @source_url,
+      homepage_url: @source_url,
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      description: "Vector embeddings service for the NSAI ecosystem",
+      docs: docs(),
+      description: description(),
       package: package()
     ]
   end
+
+  def version, do: @version
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -35,10 +44,27 @@ defmodule EmbedEx.MixProject do
     ]
   end
 
+  defp description do
+    "Vector embeddings service for the NSAI ecosystem"
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      assets: %{"assets" => "assets"},
+      logo: "assets/embed_ex.svg",
+      extras: ["README.md", "LICENSE"]
+    ]
+  end
+
   defp package do
     [
+      name: "embed_ex",
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/North-Shore-AI/embed_ex"}
+      links: %{"GitHub" => @source_url},
+      files: ~w(lib mix.exs README.md LICENSE assets)
     ]
   end
 end
