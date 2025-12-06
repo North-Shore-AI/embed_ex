@@ -159,10 +159,6 @@ defmodule EmbedEx.Cache do
           Logger.info("EmbedEx cache started")
           {:ok, %{}}
 
-        {:error, {:already_started, _pid}} ->
-          Logger.info("EmbedEx cache already started")
-          {:ok, %{}}
-
         {:error, reason} ->
           Logger.error("Failed to start cache: #{inspect(reason)}")
           {:stop, reason}

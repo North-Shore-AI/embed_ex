@@ -134,29 +134,30 @@ defmodule EmbedEx.Clustering do
     # Initialize labels (-1 = noise, 0+ = cluster)
     labels = List.duplicate(-1, n)
     current_cluster = 0
-    visited = MapSet.new()
     core_samples = []
 
     # Process each point
-    {final_labels, final_cluster, core_samples} =
-      Enum.reduce(0..(n - 1), {labels, current_cluster, core_samples}, fn idx,
-                                                                          {labels_acc,
-                                                                           cluster_acc,
-                                                                           cores_acc} ->
-        if MapSet.member?(visited, idx) do
-          {labels_acc, cluster_acc, cores_acc}
+    {final_labels, final_cluster, core_samples, _visited} =
+      Enum.reduce(0..(n - 1), {labels, current_cluster, core_samples, MapSet.new()}, fn idx,
+                                                                                        {labels_acc,
+                                                                                         cluster_acc,
+                                                                                         cores_acc,
+                                                                                         visited_acc} ->
+        if MapSet.member?(visited_acc, idx) do
+          {labels_acc, cluster_acc, cores_acc, visited_acc}
         else
+          new_visited = MapSet.put(visited_acc, idx)
           neighbors = find_neighbors(distances, idx, eps)
 
           if length(neighbors) < min_samples do
             # Noise point
-            {labels_acc, cluster_acc, cores_acc}
+            {labels_acc, cluster_acc, cores_acc, new_visited}
           else
             # Core point - expand cluster
             new_labels =
               expand_cluster(distances, labels_acc, idx, neighbors, cluster_acc, eps, min_samples)
 
-            {new_labels, cluster_acc + 1, [idx | cores_acc]}
+            {new_labels, cluster_acc + 1, [idx | cores_acc], new_visited}
           end
         end
       end)
