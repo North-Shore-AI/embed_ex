@@ -56,35 +56,31 @@ defmodule EmbedEx.Deduplication do
     return_indices = Keyword.get(opts, :return_indices, false)
 
     # Find duplicate groups
-    case find_duplicates(embeddings, threshold: threshold, metric: metric) do
-      {:ok, duplicate_groups} ->
-        # Determine which indices to keep
-        indices_to_remove =
-          duplicate_groups
-          |> Enum.flat_map(fn group ->
-            select_duplicates_to_remove(group, embeddings, strategy)
-          end)
-          |> MapSet.new()
+    {:ok, duplicate_groups} = find_duplicates(embeddings, threshold: threshold, metric: metric)
 
-        # Filter out duplicates
-        unique_indices =
-          embeddings
-          |> Enum.with_index()
-          |> Enum.reject(fn {_emb, idx} -> MapSet.member?(indices_to_remove, idx) end)
-          |> Enum.map(fn {_emb, idx} -> idx end)
+    # Determine which indices to keep
+    indices_to_remove =
+      duplicate_groups
+      |> Enum.flat_map(fn group ->
+        select_duplicates_to_remove(group, embeddings, strategy)
+      end)
+      |> MapSet.new()
 
-        result =
-          if return_indices do
-            unique_indices
-          else
-            Enum.map(unique_indices, &Enum.at(embeddings, &1))
-          end
+    # Filter out duplicates
+    unique_indices =
+      embeddings
+      |> Enum.with_index()
+      |> Enum.reject(fn {_emb, idx} -> MapSet.member?(indices_to_remove, idx) end)
+      |> Enum.map(fn {_emb, idx} -> idx end)
 
-        {:ok, result}
+    result =
+      if return_indices do
+        unique_indices
+      else
+        Enum.map(unique_indices, &Enum.at(embeddings, &1))
+      end
 
-      {:error, _} = error ->
-        error
-    end
+    {:ok, result}
   end
 
   @doc """
@@ -162,28 +158,24 @@ defmodule EmbedEx.Deduplication do
   def statistics(embeddings, opts \\ []) do
     total = length(embeddings)
 
-    case find_duplicates(embeddings, opts) do
-      {:ok, groups} ->
-        duplicate_count = Enum.reduce(groups, 0, fn group, acc -> acc + length(group) - 1 end)
-        unique_count = total - duplicate_count
+    {:ok, groups} = find_duplicates(embeddings, opts)
 
-        largest_group =
-          if Enum.empty?(groups), do: 0, else: Enum.max_by(groups, &length/1) |> length()
+    duplicate_count = Enum.reduce(groups, 0, fn group, acc -> acc + length(group) - 1 end)
+    unique_count = total - duplicate_count
 
-        stats = %{
-          total_items: total,
-          unique_items: unique_count,
-          duplicate_items: duplicate_count,
-          duplicate_groups: length(groups),
-          deduplication_ratio: unique_count / total,
-          largest_group_size: largest_group
-        }
+    largest_group =
+      if Enum.empty?(groups), do: 0, else: Enum.max_by(groups, &length/1) |> length()
 
-        {:ok, stats}
+    stats = %{
+      total_items: total,
+      unique_items: unique_count,
+      duplicate_items: duplicate_count,
+      duplicate_groups: length(groups),
+      deduplication_ratio: unique_count / total,
+      largest_group_size: largest_group
+    }
 
-      {:error, _} = error ->
-        error
-    end
+    {:ok, stats}
   end
 
   @doc """
@@ -215,33 +207,29 @@ defmodule EmbedEx.Deduplication do
   def report(embeddings, opts \\ []) do
     include_similarities = Keyword.get(opts, :include_similarities, true)
 
-    case find_duplicates(embeddings, opts) do
-      {:ok, groups} ->
-        report_data =
-          Enum.map(groups, fn group ->
-            report_entry = %{
-              indices: group,
-              size: length(group),
-              representative: hd(group)
-            }
+    {:ok, groups} = find_duplicates(embeddings, opts)
 
-            if include_similarities do
-              # Compute pairwise similarities within group
-              group_embeddings = Enum.map(group, &Enum.at(embeddings, &1))
-              metric = Keyword.get(opts, :metric, :cosine)
-              sim_matrix = Similarity.pairwise_similarity(group_embeddings, metric: metric)
+    report_data =
+      Enum.map(groups, fn group ->
+        report_entry = %{
+          indices: group,
+          size: length(group),
+          representative: hd(group)
+        }
 
-              Map.put(report_entry, :similarities, Nx.to_list(sim_matrix))
-            else
-              report_entry
-            end
-          end)
+        if include_similarities do
+          # Compute pairwise similarities within group
+          group_embeddings = Enum.map(group, &Enum.at(embeddings, &1))
+          metric = Keyword.get(opts, :metric, :cosine)
+          sim_matrix = Similarity.pairwise_similarity(group_embeddings, metric: metric)
 
-        {:ok, report_data}
+          Map.put(report_entry, :similarities, Nx.to_list(sim_matrix))
+        else
+          report_entry
+        end
+      end)
 
-      {:error, _} = error ->
-        error
-    end
+    {:ok, report_data}
   end
 
   # Private functions
