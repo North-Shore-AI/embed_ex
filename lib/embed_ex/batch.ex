@@ -234,6 +234,7 @@ defmodule EmbedEx.Batch do
   defp get_provider_module(:openai), do: EmbedEx.Providers.OpenAI
   defp get_provider_module(:cohere), do: EmbedEx.Providers.Cohere
   defp get_provider_module(:voyage), do: EmbedEx.Providers.Voyage
+  defp get_provider_module(:ollama), do: EmbedEx.Providers.Ollama
   defp get_provider_module(module) when is_atom(module), do: module
 
   defp partition_cached(texts, opts) do

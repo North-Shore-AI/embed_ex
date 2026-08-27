@@ -1,7 +1,7 @@
 defmodule EmbedEx.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
   @source_url "https://github.com/North-Shore-AI/embed_ex"
 
   def project do
@@ -37,7 +37,7 @@ defmodule EmbedEx.MixProject do
       {:req, "~> 0.4"},
       {:jason, "~> 1.4"},
       {:cachex, "~> 3.6"},
-      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.40.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:stream_data, "~> 1.1", only: :test}
@@ -55,7 +55,35 @@ defmodule EmbedEx.MixProject do
       source_url: @source_url,
       assets: %{"assets" => "assets"},
       logo: "assets/embed_ex.svg",
-      extras: ["README.md", "LICENSE"]
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "LICENSE",
+        "guides/ollama_provider.md",
+        "guides/provider_comparison.md",
+        "guides/performance_tuning.md"
+      ],
+      groups_for_extras: [
+        Guides: ~r/guides\/.*/
+      ],
+      groups_for_modules: [
+        Providers: [
+          EmbedEx.Providers.OpenAI,
+          EmbedEx.Providers.Cohere,
+          EmbedEx.Providers.Voyage,
+          EmbedEx.Providers.Ollama
+        ],
+        Core: [
+          EmbedEx,
+          EmbedEx.Embedding,
+          EmbedEx.Provider
+        ],
+        Infrastructure: [
+          EmbedEx.Batch,
+          EmbedEx.Cache,
+          EmbedEx.Similarity
+        ]
+      ]
     ]
   end
 
@@ -64,7 +92,7 @@ defmodule EmbedEx.MixProject do
       name: "embed_ex",
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib mix.exs README.md LICENSE assets)
+      files: ~w(lib mix.exs README.md CHANGELOG.md LICENSE assets guides)
     ]
   end
 end

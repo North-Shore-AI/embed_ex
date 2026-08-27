@@ -317,6 +317,12 @@ defmodule EmbedEx do
         module: Providers.Voyage,
         models: Providers.Voyage.available_models(),
         max_batch_size: Providers.Voyage.max_batch_size()
+      },
+      %{
+        name: :ollama,
+        module: Providers.Ollama,
+        models: Providers.Ollama.available_models(),
+        max_batch_size: Providers.Ollama.max_batch_size()
       }
     ]
   end
@@ -329,6 +335,7 @@ defmodule EmbedEx do
       :openai -> Providers.OpenAI
       :cohere -> Providers.Cohere
       :voyage -> Providers.Voyage
+      :ollama -> Providers.Ollama
       module when is_atom(module) -> module
     end
   end
@@ -343,6 +350,9 @@ defmodule EmbedEx do
   defp get_default_provider do
     case Application.get_env(:embed_ex, :default_provider, :openai) do
       :openai -> Providers.OpenAI
+      :cohere -> Providers.Cohere
+      :voyage -> Providers.Voyage
+      :ollama -> Providers.Ollama
       module when is_atom(module) -> module
     end
   end

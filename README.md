@@ -22,7 +22,8 @@ Vector embeddings service for the NSAI (North Shore AI) ecosystem. A unified int
 
 ## Features
 
-- **Multiple Provider Support** - OpenAI, Cohere, local models (via Bumblebee) with unified API
+- **Multiple Provider Support** - OpenAI, Cohere, Voyage, Ollama (local) with unified API
+- **PHI-Safe Local Inference** - Ollama provider for privacy-sensitive data that never leaves your environment
 - **Automatic Caching** - ETS-based cache with TTL and optional Redis backend
 - **Batch Processing** - Efficient parallel processing with automatic chunking
 - **Similarity Computations** - Cosine similarity, Euclidean distance, dot product using Nx
@@ -36,7 +37,7 @@ Add `embed_ex` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:embed_ex, "~> 0.1.0"}
+    {:embed_ex, "~> 0.2.0"}
   ]
 end
 ```
@@ -88,6 +89,7 @@ config :embed_ex, :openai,
 
 Environment variables:
 - `OPENAI_API_KEY` - Your OpenAI API key (required for OpenAI provider)
+- `OLLAMA_HOST` - Ollama server URL (default: `http://localhost:11434`)
 
 ## Usage
 
@@ -203,11 +205,80 @@ Supports OpenAI's embedding models via their API.
 - Max batch size: 2048 texts per request
 - Automatic chunking for larger batches
 
-### Future Providers
+### Ollama (Local)
 
-Planned support for:
-- **Cohere** - Cohere's embedding models
-- **Local** - Local models via Bumblebee (BERT, Sentence Transformers, etc.)
+Local embeddings via [Ollama](https://ollama.ai/) for PHI-safe processing. No data leaves your environment.
+
+**Supported Models:**
+- `nomic-embed-text` (default) - 768 dimensions, general purpose
+- `mxbai-embed-large` - 1024 dimensions, higher quality
+- `all-minilm` - 384 dimensions, fast and lightweight
+- `snowflake-arctic-embed` - 1024 dimensions, high performance
+
+**Prerequisites:**
+```bash
+# Install Ollama
+brew install ollama  # macOS
+# or curl -fsSL https://ollama.ai/install.sh | sh  # Linux
+
+# Start server and pull model
+ollama serve
+ollama pull nomic-embed-text
+```
+
+**Configuration:**
+```elixir
+# config/config.exs
+config :embed_ex, :ollama,
+  host: "http://localhost:11434",
+  default_model: "nomic-embed-text"
+```
+
+**Usage:**
+```elixir
+# Single embedding
+{:ok, embedding} = EmbedEx.embed("Hello world", provider: :ollama)
+
+# With specific model
+{:ok, embedding} = EmbedEx.embed("Hello world",
+  provider: :ollama,
+  model: "mxbai-embed-large"
+)
+
+# Batch embedding
+{:ok, embeddings} = EmbedEx.embed_batch(texts, provider: :ollama)
+
+# PHI-safe clinical text processing
+{:ok, embedding} = EmbedEx.embed(
+  "Patient presents with acute chest pain",
+  provider: :ollama
+)
+```
+
+**Batch Limits:**
+- Max batch size: 512 texts per request
+- Native batch processing (Ollama's `/api/embed` endpoint)
+
+See the [Ollama Provider Guide](guides/ollama_provider.md) for detailed documentation.
+
+### Cohere
+
+Supports Cohere's embedding models with multilingual support.
+
+**Supported Models:**
+- `embed-english-v3.0` (default) - English embeddings
+- `embed-multilingual-v3.0` - 100+ languages
+- `embed-english-light-v3.0` - Faster, lighter English model
+
+### Voyage AI
+
+Supports Voyage AI's high-performance and domain-specific models.
+
+**Supported Models:**
+- `voyage-3` (default) - General purpose, 1024 dimensions
+- `voyage-code-3` - Optimized for code
+- `voyage-finance-2` - Domain-specific for finance
+- `voyage-law-2` - Domain-specific for legal text
 
 ## Architecture
 
@@ -218,7 +289,10 @@ embed_ex/
 │       ├── embedding.ex        # Embedding struct and utilities
 │       ├── provider.ex         # Provider behaviour
 │       ├── providers/
-│       │   └── openai.ex       # OpenAI implementation
+│       │   ├── openai.ex       # OpenAI implementation
+│       │   ├── cohere.ex       # Cohere implementation
+│       │   ├── voyage.ex       # Voyage AI implementation
+│       │   └── ollama.ex       # Ollama (local) implementation
 │       ├── cache.ex            # Caching layer (Cachex)
 │       ├── similarity.ex       # Vector similarity (Nx)
 │       ├── batch.ex            # Batch processing
@@ -227,7 +301,10 @@ embed_ex/
     └── embed_ex/
         ├── embedding_test.exs
         ├── similarity_test.exs
-        └── cache_test.exs
+        ├── cache_test.exs
+        └── providers/
+            ├── ollama_test.exs
+            └── ollama_integration_test.exs
 ```
 
 ### Key Components
@@ -374,19 +451,25 @@ mix dialyzer
 
 ## Roadmap
 
-### v0.2.0
-- [ ] Cohere provider implementation
-- [ ] Local provider (Bumblebee integration)
-- [ ] Redis cache backend
-- [ ] Streaming embeddings for very large datasets
+### v0.2.0 (Current)
+- [x] Ollama provider for local PHI-safe inference
+- [x] Clinical embedding models support (nomic-embed-text, mxbai-embed-large)
+- [x] Health check and model availability functions
+- [x] Cohere provider implementation
+- [x] Voyage AI provider implementation
 
 ### v0.3.0
+- [ ] Redis cache backend
+- [ ] Streaming embeddings for very large datasets
+- [ ] Local models via Bumblebee (BERT, Sentence Transformers)
 - [ ] Advanced similarity metrics (Manhattan, Chebyshev)
+
+### v0.4.0
 - [ ] Vector quantization for reduced memory
 - [ ] Approximate nearest neighbors (ANN) search
 - [ ] Integration with vector databases (Pinecone, Weaviate, Qdrant)
 
-### v0.4.0
+### v0.5.0
 - [ ] Fine-tuning support for custom embeddings
 - [ ] Multi-modal embeddings (text + images)
 - [ ] Embedding aggregation strategies (mean pooling, max pooling)
